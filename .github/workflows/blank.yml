@@ -1,16 +1,16 @@
-name: WindBrowser Build
+name: WindBrowser Otomatik Derleyici
 
 on:
   push:
-    branches: [ "main", "master" ]
-  workflow_dispatch:
+    branches: [ "main" ] # main dalına her kod attığında otomatik çalışır
+  workflow_dispatch: # İstediğinde elinle de başlatabilmen için
 
 jobs:
-  build:
-    runs-on: windows-latest
+  build-and-release:
+    runs-on: windows-latest # Derleme işlemini Windows sunucusunda yapar
 
     steps:
-    - name: Kodu Klonla
+    - name: Kodları Klonla
       uses: actions/checkout@v4
 
     - name: Python Kur
@@ -18,27 +18,31 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Kutuphaneleri Yukle
+    - name: Gerekli Motorları Yükle (PyQt5 & PyInstaller)
       run: |
         python -m pip install --upgrade pip
         pip install PyQt5 PyQtWebEngine pyinstaller
 
-    - name: EXE Derle
-      run: pyinstaller --onefile --noconsole --name=WindBrowser windbrowser.py
+    - name: Windows için .EXE Derle
+      run: |
+        pyinstaller --onefile --noconsole --name=WindBrowser windbrowser.py
 
-    - name: WIND Paketi Hazirla
+    - name: WindOS için .WIND Paketini Hazırla
       shell: bash
       run: |
+        # WindOS sistemi için kurulum klasör yapısını oluşturuyoruz
         mkdir -p WindBrowser_WindOS
         cp windbrowser.py WindBrowser_WindOS/
         echo "AppName: WindBrowser" > WindBrowser_WindOS/manifest.txt
         echo "Core: WindOS V7" >> WindBrowser_WindOS/manifest.txt
+        
+        # Bu klasörü WindOS çekirdeğinin tek tıkla okuyabileceği .wind paketine dönüştür
         tar -czf WindBrowser.wind WindBrowser_WindOS
 
-    - name: Paketleri Cikti Olarak Ver
+    - name: Dosyaları GitHub'a Yükle (Artifacts)
       uses: actions/upload-artifact@v4
       with:
-        name: WindBrowser-Surumleri
+        name: WindBrowser-Paketleri
         path: |
-          dist/*.exe
-          *.wind
+          dist/WindBrowser.exe
+          WindBrowser.wind
